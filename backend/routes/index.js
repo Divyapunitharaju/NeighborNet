@@ -1,8 +1,10 @@
 const express =require('express')
 const bcrypt = require('bcryptjs');
 const generateToken =require('../utils/index')
+const nodemailer=require('nodemailer')
 
 const User = require('../model/index');
+const verifyToken = require('../middleware/index');
 
 
 
@@ -40,6 +42,41 @@ router.post('/authenticate',async(req,res)=>{
         }
 
         const token = generateToken(user)
+        res.json({token});
 })
+
+router.get('/data',verifyToken,(req,res)=>{
+    res.json({message:`Welcome,${req.user.email} ! This is protected data`})
+}
+
+);
+
+router.post('/reset-password',async(req,res)=>{
+    const {email}=req.body;
+
+    const user =await User.findOne({email})
+
+    if(!user){
+        return res.status(404).json({message : "USer not found"
+        })
+    }
+    const token =Math.random().toString(36).slice(-8)
+    user.resetPasswordToken =token;
+    user.resetPasswordExpires=Date.now()+3600000
+
+
+    await user.save();
+
+    const transporter = nodemailer.createTransport(
+        {
+            servicec:"gmail",
+            auth:{
+                user:"divya04gmail.com",
+                pass:""
+            }
+        }
+    )
+})
+
 
 module.exports=router
